@@ -50,7 +50,23 @@ async function postSignInUser(req, res) {
   }
 }
 
-async function getUserDataByToken(req, res) {}
+async function getUserDataByToken(req, res) {
+  const { user } = res.locals;
+
+  try {
+    const sum_visits = await db.query("SELECT SUM(visits) AS visits FROM urls WHERE user_id=$1;", [user.id]);
+    const visitCount = sum_visits.rows[0].visits;
+
+    const find_user_urls = await db.query(`SELECT (id, shortUrl, url, visits AS "visitCount") FROM urls WHERE user_id=$1;`, [user.id]);
+    const user_urls = find_user_urls.rows;
+
+    res.status(200).send({ message: "UserData found.", id: user.id, name: user.name, visitCount: visitCount, shortenedUrls: user_urls });
+    return;
+  } catch (error) {
+    res.status(500).send(error);
+    return;
+  }
+}
 
 async function getUsersRanking(req, res) {}
 
