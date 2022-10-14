@@ -1,7 +1,11 @@
 import db from "../database/database.js";
+import bcrypt from "bcrypt";
+import { v4 as uuid } from "uuid";
 
 async function postSignUpUser(req, res) {
   const { name, email, password } = req.body;
+
+  const passwordHash = bcrypt.hashSync(password, 10);
 
   try {
     const find_email = await db.query("SELECT * FROM users WHERE email=$1;", [email]);
@@ -10,7 +14,7 @@ async function postSignUpUser(req, res) {
       return;
     }
 
-    await db.query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3);", [name, email, password]);
+    await db.query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3);", [name, email, passwordHash]);
     res.status(201).send({ message: "User registered." });
     return;
   } catch (error) {
@@ -19,7 +23,32 @@ async function postSignUpUser(req, res) {
   }
 }
 
-async function postSignInUser(req, res) {}
+async function postSignInUser(req, res) {
+  const { email, password } = req.body;
+  const token = uuid();
+
+  try {
+    //User exists?
+    const find_user = await db.query("SELECT * FROM users WHERE email=$1;", [email]);
+    if (find_user.rowCount <= 0) {
+      res.status(401).send({ message: "Incorrect user/password." });
+      return;
+    }
+
+    //Incorrect password?
+    const user = find_user.rows[0];
+    if (!bcrypt.compareSync(password, user.password)) {
+      res.status(401).send({ message: "Incorrect user/password." });
+      return;
+    }
+
+    res.status(200).send({ message: "You have loged in.", token: token });
+    return;
+  } catch (error) {
+    res.status(500).send(error);
+    return;
+  }
+}
 
 async function getUserDataByToken(req, res) {}
 
