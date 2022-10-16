@@ -3,13 +3,15 @@ CREATE TABLE "users" (
 	"name" TEXT NOT NULL,
 	"email" TEXT NOT NULL UNIQUE,
 	"password" TEXT NOT NULL,
-	"token" TEXT UNIQUE
+	"token" TEXT UNIQUE,
+	"createdAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE "urls" (
 	"id" serial PRIMARY KEY,
 	"url" TEXT NOT NULL,
-	"short_url" TEXT NOT NULL UNIQUE,
-	"visits" bigint NOT NULL,
-	"user_id" integer NOT NULL REFERENCES "users"("id")
+	"shortUrl" TEXT NOT NULL UNIQUE,
+	"visits" bigint NOT NULL DEFAULT 0,
+	"user_id" integer NOT NULL REFERENCES "users"("id"),
+	"createdAt" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );

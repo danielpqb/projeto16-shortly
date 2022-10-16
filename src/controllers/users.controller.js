@@ -44,11 +44,12 @@ async function postSignInUser(req, res) {
 
     //Incorrect password?
     const user = find_user.rows[0];
-    if (bcrypt.compareSync(password, user.password)) {
+    if (!bcrypt.compareSync(password, user.password)) {
       res.status(401).send({ message: "Incorrect user/password." });
       return;
     }
 
+    await db.query("UPDATE users SET token=$1 WHERE id=$2;", [token, user.id]);
     res.status(200).send({ message: "You have loged in.", token: token });
     return;
   } catch (error) {
@@ -68,7 +69,7 @@ async function getUserDataByToken(req, res) {
     const visitCount = sum_visits.rows[0].visits;
 
     const find_user_urls = await db.query(
-      `SELECT (id, shortUrl, url, visits AS "visitCount") FROM urls WHERE user_id=$1;`,
+      `SELECT id, "shortUrl", url, visits AS "visitCount" FROM urls WHERE user_id=$1;`,
       [user.id]
     );
     const user_urls = find_user_urls.rows;
