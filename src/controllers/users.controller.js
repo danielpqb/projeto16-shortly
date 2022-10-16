@@ -8,13 +8,18 @@ async function postSignUpUser(req, res) {
   const passwordHash = bcrypt.hashSync(password, 10);
 
   try {
-    const find_email = await db.query("SELECT * FROM users WHERE email=$1;", [email]);
+    const find_email = await db.query("SELECT * FROM users WHERE email=$1;", [
+      email,
+    ]);
     if (find_email.rowCount > 0) {
       res.status(409).send({ message: "Email already in use." });
       return;
     }
 
-    await db.query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3);", [name, email, passwordHash]);
+    await db.query(
+      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3);",
+      [name, email, passwordHash]
+    );
     res.status(201).send({ message: "User registered." });
     return;
   } catch (error) {
@@ -29,7 +34,9 @@ async function postSignInUser(req, res) {
 
   try {
     //User exists?
-    const find_user = await db.query("SELECT * FROM users WHERE email=$1;", [email]);
+    const find_user = await db.query("SELECT * FROM users WHERE email=$1;", [
+      email,
+    ]);
     if (find_user.rowCount <= 0) {
       res.status(401).send({ message: "Incorrect user/password." });
       return;
@@ -37,7 +44,7 @@ async function postSignInUser(req, res) {
 
     //Incorrect password?
     const user = find_user.rows[0];
-    if (!bcrypt.compareSync(password, user.password)) {
+    if (bcrypt.compareSync(password, user.password)) {
       res.status(401).send({ message: "Incorrect user/password." });
       return;
     }
@@ -54,13 +61,25 @@ async function getUserDataByToken(req, res) {
   const { user } = res.locals;
 
   try {
-    const sum_visits = await db.query("SELECT SUM(visits) AS visits FROM urls WHERE user_id=$1;", [user.id]);
+    const sum_visits = await db.query(
+      "SELECT SUM(visits) AS visits FROM urls WHERE user_id=$1;",
+      [user.id]
+    );
     const visitCount = sum_visits.rows[0].visits;
 
-    const find_user_urls = await db.query(`SELECT (id, shortUrl, url, visits AS "visitCount") FROM urls WHERE user_id=$1;`, [user.id]);
+    const find_user_urls = await db.query(
+      `SELECT (id, shortUrl, url, visits AS "visitCount") FROM urls WHERE user_id=$1;`,
+      [user.id]
+    );
     const user_urls = find_user_urls.rows;
 
-    res.status(200).send({ message: "UserData found.", id: user.id, name: user.name, visitCount: visitCount, shortenedUrls: user_urls });
+    res.status(200).send({
+      message: "UserData found.",
+      id: user.id,
+      name: user.name,
+      visitCount: visitCount,
+      shortenedUrls: user_urls,
+    });
     return;
   } catch (error) {
     res.status(500).send(error);
@@ -68,6 +87,24 @@ async function getUserDataByToken(req, res) {
   }
 }
 
-async function getUsersRanking(req, res) {}
+async function getUsersRanking(req, res) {
+  try {
+    const top10_urls = await db.query(
+      `SELECT users.id, users.name, COALESCE(SUM(urls.visits), 0) AS "visitCount", COUNT(urls.id) AS "linksCount"
+      FROM urls
+      RIGHT JOIN users
+      ON users.id=urls.user_id
+      GROUP BY users.id
+      ORDER BY "visitCount" DESC, id ASC
+      LIMIT 10;`
+    );
+
+    res.status(200).send({ message: "Top 10 Ranking.", body: top10_urls.rows });
+    return;
+  } catch (error) {
+    res.status(500).send(error);
+    return;
+  }
+}
 
 export { postSignUpUser, postSignInUser, getUserDataByToken, getUsersRanking };

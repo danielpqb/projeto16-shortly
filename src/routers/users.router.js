@@ -1,6 +1,11 @@
 import express from "express";
 
-import { postSignUpUser, postSignInUser, getUserDataByToken, getUsersRanking } from "../controllers/users.controller.js";
+import {
+  postSignUpUser,
+  postSignInUser,
+  getUserDataByToken,
+  getUsersRanking,
+} from "../controllers/users.controller.js";
 
 import { validateSchema } from "../middlewares/validateSchema.middleware.js";
 import { validateToken } from "../middlewares/validateToken.middleware.js";
